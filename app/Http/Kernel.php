@@ -39,10 +39,16 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
+    ];
+
+    protected $routeMiddleware = [
+        'tenant' => \App\Http\Middleware\InitializeTenancyByApiKey::class,
+        'master.api' => \App\Http\Middleware\MasterApiKeyAuth::class,
+        'role' => \App\Http\Middleware\CheckRole::class,
     ];
 
     /**

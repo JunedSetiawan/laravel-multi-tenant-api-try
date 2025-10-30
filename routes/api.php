@@ -2,6 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +17,35 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware(['tenant'])->group(function () {
+
+    // Public routes (tidak perlu login)
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+
+    // Info tenant
+    Route::get('/info', function () {
+        return response()->json([
+            'tenant_id' => tenant('id'),
+            'tenant_name' => tenant('name'),
+            'database' => DB::connection('tenant')->getDatabaseName(),
+        ]);
+    });
+
+    // Protected routes (perlu login dengan Sanctum)
+    Route::middleware(['auth:sanctum'])->group(function () {
+
+        // Auth
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+
+        // Products
+        Route::apiResource('products', \App\Http\Controllers\ProductController::class);
+
+
+        // Admin only routes
+        Route::middleware(['role:admin'])->group(function () {
+            Route::apiResource('users', UserController::class);
+        });
+    });
 });
