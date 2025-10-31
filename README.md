@@ -349,25 +349,45 @@ Headers:
 └────┬────┘
      │
      │ POST /api/central/tenants
-     │ (name, db_name, db_host, etc.)
+     │ (name, db_name, db_host, db_username, db_password)
      ▼
-┌──────────────────────┐
-│   Create Tenant      │
-│                      │
-│  1. Save to DB       │
-│  2. Create Database  │
-│  3. Run Migrations   │
-│  4. Generate API Key │
-└──────────┬───────────┘
+┌──────────────────────────────────────┐
+│   Create Tenant in Central DB        │
+│                                      │
+│  1. Save tenant metadata             │
+│  2. Encrypt db_password              │
+│  3. Generate & hash API Key          │
+│  4. Store db config (host, port,     │
+│     username, encrypted password)    │
+└──────────┬───────────────────────────┘
            │
-           │ Response: tenant_id, api_key
+           │ Database tenant (db_name) HARUS SUDAH ADA
+           │ dengan migrations yang sudah di-run
+           │
+           │ Response: tenant_id, api_key (plaintext)
            ▼
-┌──────────────────────┐
-│ Admin receives       │
-│ API Key & gives to   │
-│ Tenant Owner         │
-└──────────────────────┘
+┌──────────────────────────────────────┐
+│ Admin receives API Key               │
+│ ⚠️  SAVE API KEY - shown only once!  │
+│                                      │
+│ Admin gives API Key to Tenant Owner  │
+└──────────────────────────────────────┘
+           │
+           │ Tenant Owner can now use API Key
+           │ to access their database
+           ▼
+┌──────────────────────────────────────┐
+│ Tenant users can register/login      │
+│ using X-Tenant-API-Key header         │
+└──────────────────────────────────────┘
 ```
+
+**⚠️ Important Notes:**
+
+-   Database dengan nama `db_name` **HARUS SUDAH DIBUAT** sebelumnya
+-   Migrations **HARUS SUDAH DI-RUN** di database tenant tersebut
+-   Sistem **TIDAK** otomatis membuat database atau run migrations
+-   Sistem hanya menyimpan konfigurasi koneksi ke database yang sudah ada
 
 ### 2. User Registration & Login
 
