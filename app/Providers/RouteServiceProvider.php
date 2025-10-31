@@ -29,15 +29,15 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
-            // Central Routes (Management Tenant)
+            // Central Routes (Management Tenant) - NO tenant middleware
             Route::middleware('api')
                 ->prefix('api/central')
                 ->group(base_path('routes/central.php'));
 
-            // Tenant Routes (API Key Based)
-            Route::middleware('api')
+            // Tenant Routes (API Key Based) - WITH tenant middleware FIRST
+            Route::middleware(['tenant', 'api'])
                 ->prefix('api')
-                ->group(base_path('routes/api.php'));
+                ->group(base_path('routes/tenant.php'));
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));

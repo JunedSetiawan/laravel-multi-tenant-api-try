@@ -1,29 +1,48 @@
 <?php
 
-declare(strict_types=1);
-
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
-| Tenant Routes
+| Tenant API Routes
 |--------------------------------------------------------------------------
 |
-| Here you can register the tenant routes for your application.
-| These routes are loaded by the TenantRouteServiceProvider.
+| Here you can register API routes for tenants. These routes are loaded
+| by the RouteServiceProvider and all of them will be assigned to the
+| "api" middleware group with "tenant" middleware.
 |
-| Feel free to customize them however you want. Good luck!
+| All routes here require X-Tenant-API-Key header.
 |
 */
 
-Route::middleware([
-    'web',
-    InitializeTenancyByDomain::class,
-    PreventAccessFromCentralDomains::class,
-])->group(function () {
-    Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
+// Public routes (tidak perlu login, tapi perlu tenant API key)
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+// Info tenant
+Route::get('/info', function () {
+    return response()->json([
+        'tenant_id' => tenant('id'),
+        'tenant_name' => tenant('name'),
+        'database' => DB::connection('tenant')->getDatabaseName(),
+    ]);
+});
+
+// Protected routes (perlu login dengan Sanctum + tenant API key)
+Route::middleware(['auth:sanctum', 'tenant.token'])->group(function () {
+
+    // Auth
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+
+    // Products
+    Route::apiResource('products', \App\Http\Controllers\ProductController::class);
+
+    // Admin only routes
+    Route::middleware(['role:admin'])->group(function () {
+        Route::apiResource('users', UserController::class);
     });
 });

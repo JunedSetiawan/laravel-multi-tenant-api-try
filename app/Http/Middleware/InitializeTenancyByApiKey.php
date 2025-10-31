@@ -30,8 +30,9 @@ class InitializeTenancyByApiKey
 
         if (!$apiKey) {
             return response()->json([
-                'error' => 'Tenant API Key is required',
-                'message' => 'Please provide X-Tenant-API-Key header'
+                'error' => 'Tenant API Key Required',
+                'message' => 'X-Tenant-API-Key header is missing. Please provide a valid tenant API key to access this resource.',
+                'hint' => 'Add header: X-Tenant-API-Key: tk_your_api_key_here'
             ], 401);
         }
 
@@ -41,7 +42,9 @@ class InitializeTenancyByApiKey
         if (!$tenant) {
             return response()->json([
                 'error' => 'Invalid Tenant API Key',
-                'message' => 'The provided API Key is not valid'
+                'message' => 'The provided API key does not match any tenant in our system. Please verify your API key or contact your administrator.',
+                'hint' => 'Make sure you are using the correct API key for your tenant.',
+                'provided_key' => substr($apiKey, 0, 10) . '...' // Show partial key for debugging
             ], 403);
         }
 
@@ -79,6 +82,13 @@ class InitializeTenancyByApiKey
             $dbPassword = config('database.connections.tenant.password');
         }
 
+        Log::info('Tenant DB Password Retrieved', [
+            'has_password' => $dbPassword ? true : false,
+            'password_length' => $dbPassword ? strlen($dbPassword) : 0,
+            'password_encrypt' => $tenant->getInternal('db_password'),
+            'password_decrypted' => $dbPassword,
+        ]);
+
         $dbConfig = [
             'database' => $tenant->database()->getName(),
             'host' => $tenant->getInternal('db_host') ?? config('database.connections.tenant.host'),
@@ -112,5 +122,16 @@ class InitializeTenancyByApiKey
         ]);
 
         return $next($request);
+    }
+
+    /**
+     * Handle the response after request is processed
+     */
+    public function terminate($request, $response)
+    {
+        // Clean up tenancy after request
+        if (tenancy()->initialized) {
+            tenancy()->end();
+        }
     }
 }
