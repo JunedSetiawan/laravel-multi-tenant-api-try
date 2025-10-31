@@ -343,45 +343,133 @@ Headers:
 
 ### 1. Setup Tenant Baru
 
-```mermaid
-graph TD
-    A[Admin] -->|POST /api/central/tenants| B[Create Tenant]
-    B --> C[Database Created]
-    B --> D[Migrations Run]
-    B --> E[API Key Generated]
-    E --> F[Return API Key to Admin]
-    F --> G[Admin gives API Key to Tenant]
+```
+┌─────────┐
+│  Admin  │
+└────┬────┘
+     │
+     │ POST /api/central/tenants
+     │ (name, db_name, db_host, etc.)
+     ▼
+┌──────────────────────┐
+│   Create Tenant      │
+│                      │
+│  1. Save to DB       │
+│  2. Create Database  │
+│  3. Run Migrations   │
+│  4. Generate API Key │
+└──────────┬───────────┘
+           │
+           │ Response: tenant_id, api_key
+           ▼
+┌──────────────────────┐
+│ Admin receives       │
+│ API Key & gives to   │
+│ Tenant Owner         │
+└──────────────────────┘
 ```
 
 ### 2. User Registration & Login
 
-```mermaid
-graph TD
-    A[User] -->|POST /api/register| B[Register with Tenant API Key]
-    B --> C[User saved to Tenant DB]
-    C --> D[Return Success]
-    A -->|POST /api/login| E[Login with Credentials]
-    E --> F[Generate Sanctum Token]
-    F --> G[Token saved to Tenant DB]
-    G --> H[Return Token to User]
+```
+┌──────────┐
+│   User   │
+└────┬─────┘
+     │
+     │ POST /api/register
+     │ Headers: X-Tenant-API-Key
+     │ Body: name, email, password
+     ▼
+┌──────────────────────┐
+│  Register Process    │
+│                      │
+│  1. Validate Tenant  │
+│  2. Create User in   │
+│     Tenant Database  │
+└──────────┬───────────┘
+           │
+           │ Success Response
+           ▼
+┌──────────────────────┐
+│  POST /api/login     │
+│  Body: email, pass   │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  Login Process       │
+│                      │
+│  1. Find User        │
+│  2. Verify Password  │
+│  3. Generate Token   │
+│  4. Save to Tenant DB│
+└──────────┬───────────┘
+           │
+           │ Response: user, token
+           ▼
+┌──────────────────────┐
+│  User can now access │
+│  protected resources │
+└──────────────────────┘
 ```
 
 ### 3. Access Protected Resources
 
-```mermaid
-graph TD
-    A[User Request] --> B{Has X-Tenant-API-Key?}
-    B -->|No| C[Error: Tenant API Key Required]
-    B -->|Yes| D{Valid Tenant?}
-    D -->|No| E[Error: Invalid Tenant API Key]
-    D -->|Yes| F[Initialize Tenancy]
-    F --> G{Has Bearer Token?}
-    G -->|No| H[Error: Unauthenticated]
-    G -->|Yes| I{Valid Token in Tenant DB?}
-    I -->|No| J[Error: Invalid Token]
-    I -->|Yes| K{Token from Same Tenant?}
-    K -->|No| L[Error: Token Context Mismatch]
-    K -->|Yes| M[Access Granted]
+```
+┌────────────────┐
+│ User Request   │
+│ with Headers   │
+└───────┬────────┘
+        │
+        ▼
+   ┌─────────────────────┐
+   │ Has X-Tenant-API-   │ NO
+   │ Key header?         ├────► Error: API Key Required
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ Find Tenant by      │ NO
+   │ API Key             ├────► Error: Invalid API Key
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ Initialize Tenancy  │
+   │ - Set DB Connection │
+   │ - Load Tenant Data  │
+   └─────────┬───────────┘
+             │
+             ▼
+   ┌─────────────────────┐
+   │ Has Authorization   │ NO
+   │ Bearer header?      ├────► Error: Unauthenticated
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ Find Token in       │ NO
+   │ Tenant Database     ├────► Error: Invalid Token
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ Validate Token      │ NO
+   │ belongs to Tenant   ├────► Error: Token Mismatch
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ Check Role/         │ NO
+   │ Permissions         ├────► Error: Forbidden
+   └─────────┬───────────┘
+             │ YES
+             ▼
+   ┌─────────────────────┐
+   │ ✅ Access Granted   │
+   │ Execute Controller  │
+   │ Return Response     │
+   └─────────────────────┘
 ```
 
 ## 🔐 Keamanan
