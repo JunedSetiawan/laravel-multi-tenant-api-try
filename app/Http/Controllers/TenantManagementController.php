@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Http\Requests\StoreTenantRequest;
+use App\Http\Requests\UpdateTenantRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Artisan;
 
 class TenantManagementController extends Controller
@@ -13,24 +14,8 @@ class TenantManagementController extends Controller
     /**
      * Create new tenant
      */
-    public function store(Request $request)
+    public function store(StoreTenantRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'db_host' => 'nullable|string',
-            'db_port' => 'nullable|integer',
-            'db_name' => 'nullable|string',
-            'db_username' => 'nullable|string',
-            'db_password' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'messages' => $validator->errors()
-            ], 422);
-        }
-
         try {
             DB::beginTransaction();
 
@@ -199,7 +184,7 @@ class TenantManagementController extends Controller
     /**
      * Update tenant
      */
-    public function update(Request $request, $id)
+    public function update(UpdateTenantRequest $request, $id)
     {
         $tenant = Tenant::find($id);
 
@@ -207,22 +192,6 @@ class TenantManagementController extends Controller
             return response()->json([
                 'error' => 'Tenant not found'
             ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
-            'db_host' => 'nullable|string',
-            'db_port' => 'nullable|integer',
-            'db_name' => 'nullable|string',
-            'db_username' => 'nullable|string',
-            'db_password' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'messages' => $validator->errors()
-            ], 422);
         }
 
         try {

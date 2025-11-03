@@ -44,6 +44,7 @@ Route::middleware(['master.api'])->group(function () {
     Route::delete('/tenants/{id}', [TenantManagementController::class, 'destroy']);
     Route::post('/tenants/{id}/regenerate-key', [TenantManagementController::class, 'regenerateApiKey']);
     Route::get('/tenants/{id}/health', [TenantManagementController::class, 'healthCheck']);
+
     // test connector
     Route::post('/tenants/{id}/test-connection', [TenantManagementController::class, 'testConnection']);
 

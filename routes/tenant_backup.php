@@ -45,7 +45,7 @@ Route::middleware(['auth:sanctum', 'tenant.token'])->group(function () {
 
 
     // Admin only routes
-    Route::middleware(['role:admin'])->group(function () {
-        Route::apiResource('users', UserController::class);
-    });
+    // Route::middleware(['role:admin'])->group(function () {
+    //     Route::apiResource('users', UserController::class);
+    // });
 });
