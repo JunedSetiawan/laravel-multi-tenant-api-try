@@ -20,12 +20,15 @@ class ExtendedRouteGrouper extends RouteGrouper
     }
 
     /**
-     * Override formatRoute to add query parameters
+     * Override formatRoute to add query parameters and dynamic headers
      */
     protected function formatRoute(RouteInfoDto $route): array
     {
         // Call parent to get the base formatted route
         $formatted = parent::formatRoute($route);
+
+        // Override headers with conditional logic based on URI
+        $formatted['request']['header'] = $this->buildConditionalHeaders($route);
 
         // Only add query parameters for GET requests
         if (in_array('GET', $route->methods)) {
@@ -45,6 +48,51 @@ class ExtendedRouteGrouper extends RouteGrouper
         }
 
         return $formatted;
+    }
+
+    /**
+     * Build headers conditionally based on route URI
+     *
+     * @param RouteInfoDto $route
+     * @return array
+     */
+    protected function buildConditionalHeaders(RouteInfoDto $route): array
+    {
+        $headers = [
+            [
+                'key' => 'Accept',
+                'value' => 'application/json',
+                'type' => 'text'
+            ],
+            [
+                'key' => 'Content-Type',
+                'value' => 'application/json',
+                'type' => 'text'
+            ],
+        ];
+
+        $uri = $route->uri;
+
+        // Central routes - require X-Master-API-Key only
+        if (str_starts_with($uri, 'api/central')) {
+            $headers[] = [
+                'key' => 'X-Master-API-Key',
+                'value' => '{{master_api_key}}',
+                'type' => 'text',
+                'description' => 'Master API key for central management'
+            ];
+        } 
+        // Tenant routes - require X-Tenant-API-Key
+        else if (str_starts_with($uri, 'api/')) {
+            $headers[] = [
+                'key' => 'X-Tenant-API-Key',
+                'value' => '{{tenant_api_key}}',
+                'type' => 'text',
+                'description' => 'Tenant-specific API key'
+            ];
+        }
+
+        return $headers;
     }
 
     /**

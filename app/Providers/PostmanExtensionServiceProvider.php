@@ -8,6 +8,7 @@ use YasinTgh\LaravelPostman\Collections\Builder;
 use YasinTgh\LaravelPostman\Services\NameGenerator;
 use YasinTgh\LaravelPostman\Services\RequestBodyGenerator;
 use App\Services\ExtendedRouteGrouper;
+use App\Services\ExtendedBuilder;
 use App\Services\QueryParameterExtractor;
 
 class PostmanExtensionServiceProvider extends ServiceProvider
@@ -17,11 +18,11 @@ class PostmanExtensionServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Override the Builder binding to use our custom RouteGrouper
+        // Override the Builder binding to use our custom Builder and RouteGrouper
         $this->app->singleton(Builder::class, function ($app) {
             $config = $app->make(Config::class)->get('postman', []);
 
-            return new Builder(
+            return new ExtendedBuilder(
                 new ExtendedRouteGrouper(
                     $config['structure']['folders']['strategy'] ?? 'prefix',
                     $config,
